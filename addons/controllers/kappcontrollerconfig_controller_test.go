@@ -123,16 +123,16 @@ var _ = Describe("KappControllerConfig Reconciler", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 
 			// Update cluster Proxy settings
-			tanzuClusterBootstrap := &runv1alpha3.TanzuClusterBootstrap{}
+			clusterBootstrap := &runv1alpha3.ClusterBootstrap{}
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(cluster), tanzuClusterBootstrap)
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(cluster), clusterBootstrap)
 				if err != nil {
 					return false
 				}
-				tanzuClusterBootstrap = tanzuClusterBootstrap.DeepCopy()
+				clusterBootstrap = clusterBootstrap.DeepCopy()
 
 				mutateFn := func() error {
-					tanzuClusterBootstrap.Spec.Proxy = &runv1alpha3.ProxyConfig{
+					clusterBootstrap.Spec.Proxy = &runv1alpha3.ProxyConfig{
 						HTTPProxy:  "foo.com",
 						HTTPSProxy: "bar.com",
 						NoProxy:    "foobar.com",
@@ -140,11 +140,8 @@ var _ = Describe("KappControllerConfig Reconciler", func() {
 					return nil
 				}
 
-				_, err = controllerutil.CreateOrPatch(ctx, k8sClient, tanzuClusterBootstrap, mutateFn)
-				if err != nil {
-					return false
-				}
-				return true
+				_, err = controllerutil.CreateOrPatch(ctx, k8sClient, clusterBootstrap, mutateFn)
+				return err == nil
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 
 			Eventually(func() bool {

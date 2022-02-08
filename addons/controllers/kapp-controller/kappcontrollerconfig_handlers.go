@@ -10,16 +10,16 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterapiutil "sigs.k8s.io/cluster-api/util"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/vmware-tanzu/tanzu-framework/addons/pkg/constants"
 	runtanzuv1alpha3 "github.com/vmware-tanzu/tanzu-framework/apis/run/v1alpha3"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TKRToClusters returns a list of Requests with Cluster ObjectKey for
+// ClusterToKappControllerConfig returns a list of Requests with KappControllerConfig ObjectKey
 func (r *KappControllerConfigReconciler) ClusterToKappControllerConfig(o client.Object) []ctrl.Request {
 	cluster, ok := o.(*clusterv1beta1.Cluster)
 	if !ok {
@@ -36,7 +36,7 @@ func (r *KappControllerConfigReconciler) ClusterToKappControllerConfig(o client.
 	KappControllerConfigList := &runtanzuv1alpha3.KappControllerConfigList{}
 
 	if err := r.Client.List(context.Background(), KappControllerConfigList); err != nil {
-		log.Error(err, "Error getting clusters using TKR")
+		log.Error(err, "Error listing KappControllerConfig")
 		return nil
 	}
 
@@ -61,7 +61,6 @@ func (r *KappControllerConfigReconciler) ClusterToKappControllerConfig(o client.
 					NamespacedName: clusterapiutil.ObjectKey(config),
 				})
 			}
-
 		}
 	}
 
