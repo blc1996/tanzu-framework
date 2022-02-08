@@ -24,6 +24,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterapiutil "sigs.k8s.io/cluster-api/util"
+	clusterapipatchutil "sigs.k8s.io/cluster-api/util/patch"
 	clusterApiPredicates "sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -157,6 +158,12 @@ func (r *ClusterBootstrapReconciler) reconcileNormal(cluster *clusterapiv1beta1.
 	}
 	if clusterBootstrap == nil {
 		return ctrl.Result{}, nil
+	}
+
+	// reconcile the proxy settings of the cluster
+	err = r.reconcileClusterProxySettings(cluster, tanzuClusterBootstrap, log)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	remoteClient, err := util.GetClusterClient(r.context, r.Client, r.Scheme, clusterapiutil.ObjectKey(cluster))
@@ -606,4 +613,40 @@ func (r *ClusterBootstrapReconciler) watchProvider(providerRef *corev1.TypedLoca
 			GenericFunc: func(e event.GenericEvent) bool { return true },
 		},
 	)
+}
+
+func (r *TanzuClusterBootstrapReconciler) reconcileClusterProxySettings(cluster *clusterapiv1beta1.Cluster,
+	tcb *runtanzuv1alpha3.TanzuClusterBootstrap,
+	log logr.Logger) error {
+
+	// use patchHelper to auto detect if there is diff in Cluster CR when performing update
+	patchHelper, err := clusterapipatchutil.NewHelper(cluster, r.Client)
+	if err != nil {
+		return err
+	}
+
+	HTTPProxy := ""
+	HTTPSProxy := ""
+	NoProxy := ""
+	if tcb.Spec.Proxy != nil {
+		HTTPProxy = tcb.Spec.Proxy.HTTPProxy
+		HTTPSProxy = tcb.Spec.Proxy.HTTPSProxy
+		NoProxy = tcb.Spec.Proxy.NoProxy
+	}
+
+	if cluster.Annotations == nil {
+		cluster.Annotations = map[string]string{}
+	}
+	cluster.Annotations[addontypes.TCBHTTPProxyConfigAnnotation] = HTTPProxy
+	cluster.Annotations[addontypes.TCBHTTPSProxyConfigAnnotation] = HTTPSProxy
+	cluster.Annotations[addontypes.TCBNoProxyConfigAnnotation] = NoProxy
+
+	log.Info("setting proxy configuration in Cluster annotation", addontypes.TCBHTTPProxyConfigAnnotation, HTTPProxy, addontypes.TCBHTTPSProxyConfigAnnotation, HTTPSProxy, addontypes.TCBNoProxyConfigAnnotation, NoProxy)
+
+	if err := patchHelper.Patch(r.context, cluster); err != nil {
+		log.Error(err, "Error patching Cluster Annotation")
+		return err
+	}
+
+	return nil
 }

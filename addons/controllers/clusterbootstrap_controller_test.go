@@ -91,6 +91,32 @@ var _ = Describe("ClusterBootstrap Reconciler", func() {
 				return false
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 
+			// Verify Proxy Configurations
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(cluster), tanzuClusterBootstrap)
+				if err != nil {
+					return false
+				}
+
+				err = k8sClient.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
+				if err != nil {
+					return false
+				}
+
+				if tanzuClusterBootstrap.Spec.Proxy != nil &&
+					tanzuClusterBootstrap.Spec.Proxy.HTTPProxy == "foo.com" &&
+					tanzuClusterBootstrap.Spec.Proxy.HTTPSProxy == "bar.com" &&
+					tanzuClusterBootstrap.Spec.Proxy.NoProxy == "foobar.com" &&
+					cluster.Annotations != nil &&
+					cluster.Annotations[addontypes.TCBHTTPProxyConfigAnnotation] == "foo.com" &&
+					cluster.Annotations[addontypes.TCBHTTPSProxyConfigAnnotation] == "bar.com" &&
+					cluster.Annotations[addontypes.TCBNoProxyConfigAnnotation] == "foobar.com" {
+					return true
+				}
+
+				return false
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+
 			var gvr schema.GroupVersionResource
 			var object *unstructured.Unstructured
 

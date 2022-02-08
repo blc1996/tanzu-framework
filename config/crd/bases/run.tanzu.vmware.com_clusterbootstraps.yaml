@@ -244,6 +244,15 @@ spec:
                 required:
                 - refName
                 type: object
+              proxy:
+                properties:
+                  http_proxy:
+                    type: string
+                  https_proxy:
+                    type: string
+                  no_proxy:
+                    type: string
+                type: object
             type: object
           status:
             description: ClusterBootstrapStatus defines the observed state of ClusterBootstrap
