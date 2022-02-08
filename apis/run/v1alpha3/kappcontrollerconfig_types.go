@@ -72,18 +72,6 @@ type KappConfig struct {
 	//+kubebuilder:validation:Optional
 	CaCerts string `json:"caCerts,omitempty"`
 
-	// The url/ip of a proxy for kapp controller to use when making network requests
-	//+kubebuilder:validation:Optional
-	HTTPProxy string `json:"httpProxy,omitempty"`
-
-	// The url/ip of a TLS capable proxy for kapp-controller to use when making network requests
-	//+kubebuilder:validation:Optional
-	HTTPSProxy string `json:"httpsProxy,omitempty"`
-
-	// A comma delimited list of domain names which kapp-controller should bypass the proxy for when making requests
-	//+kubebuilder:validation:Optional
-	NoProxy string `json:"noProxy,omitempty"`
-
 	// A comma delimited list of hostnames for which kapp-controller should skip TLS verification
 	//+kubebuilder:validation:Optional
 	DangerousSkipTLSVerify string `json:"dangerousSkipTLSVerify,omitempty"`
