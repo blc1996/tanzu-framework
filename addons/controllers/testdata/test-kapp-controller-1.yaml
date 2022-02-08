@@ -4,6 +4,9 @@ kind: Cluster
 metadata:
   name: test-kapp-controller-1
   namespace: default
+  labels:
+    tkg.tanzu.vmware.com/cluster-name: test-kapp-controller-1
+    tanzuKubernetesRelease: v1.22.5
 spec:
   clusterNetwork:
     pods:
@@ -12,6 +15,26 @@ spec:
     services:
       cidrBlocks:
         - 100.64.0.0/13
+---
+apiVersion: run.tanzu.vmware.com/v1alpha3
+kind: TanzuKubernetesRelease
+metadata:
+  name: v1.22.5
+spec:
+  version: v1.22.5
+  kubernetes:
+    version: v1.22.5
+    imageRepository: foo
+  osImages: []
+  bootstrapPackages: []
+---
+apiVersion: run.tanzu.vmware.com/v1alpha3
+kind: TanzuClusterBootstrapTemplate
+metadata:
+  name: v1.22.5
+  namespace: tkg-system
+spec:
+  additionalPackages: []
 ---
 apiVersion: run.tanzu.vmware.com/v1alpha3
 kind: KappControllerConfig

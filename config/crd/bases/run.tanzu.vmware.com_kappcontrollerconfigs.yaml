@@ -66,19 +66,6 @@ spec:
                         description: A comma delimited list of hostnames for which
                           kapp-controller should skip TLS verification
                         type: string
-                      httpProxy:
-                        description: The url/ip of a proxy for kapp controller to
-                          use when making network requests
-                        type: string
-                      httpsProxy:
-                        description: The url/ip of a TLS capable proxy for kapp-controller
-                          to use when making network requests
-                        type: string
-                      noProxy:
-                        description: A comma delimited list of domain names which
-                          kapp-controller should bypass the proxy for when making
-                          requests
-                        type: string
                     type: object
                   createNamespace:
                     default: true
