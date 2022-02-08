@@ -93,7 +93,7 @@ var _ = Describe("ClusterBootstrap Reconciler", func() {
 
 			// Verify Proxy Configurations
 			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(cluster), tanzuClusterBootstrap)
+				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(cluster), clusterBootstrap)
 				if err != nil {
 					return false
 				}
@@ -103,14 +103,14 @@ var _ = Describe("ClusterBootstrap Reconciler", func() {
 					return false
 				}
 
-				if tanzuClusterBootstrap.Spec.Proxy != nil &&
-					tanzuClusterBootstrap.Spec.Proxy.HTTPProxy == "foo.com" &&
-					tanzuClusterBootstrap.Spec.Proxy.HTTPSProxy == "bar.com" &&
-					tanzuClusterBootstrap.Spec.Proxy.NoProxy == "foobar.com" &&
+				if clusterBootstrap.Spec.Proxy != nil &&
+					clusterBootstrap.Spec.Proxy.HTTPProxy == "foo.com" &&
+					clusterBootstrap.Spec.Proxy.HTTPSProxy == "bar.com" &&
+					clusterBootstrap.Spec.Proxy.NoProxy == "foobar.com" &&
 					cluster.Annotations != nil &&
-					cluster.Annotations[addontypes.TCBHTTPProxyConfigAnnotation] == "foo.com" &&
-					cluster.Annotations[addontypes.TCBHTTPSProxyConfigAnnotation] == "bar.com" &&
-					cluster.Annotations[addontypes.TCBNoProxyConfigAnnotation] == "foobar.com" {
+					cluster.Annotations[addontypes.TCBHTTPProxyConfigAnnotation] == clusterBootstrap.Spec.Proxy.HTTPProxy &&
+					cluster.Annotations[addontypes.TCBHTTPSProxyConfigAnnotation] == clusterBootstrap.Spec.Proxy.HTTPSProxy &&
+					cluster.Annotations[addontypes.TCBNoProxyConfigAnnotation] == clusterBootstrap.Spec.Proxy.NoProxy {
 					return true
 				}
 

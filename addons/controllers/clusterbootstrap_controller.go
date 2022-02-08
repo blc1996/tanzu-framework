@@ -161,7 +161,7 @@ func (r *ClusterBootstrapReconciler) reconcileNormal(cluster *clusterapiv1beta1.
 	}
 
 	// reconcile the proxy settings of the cluster
-	err = r.reconcileClusterProxySettings(cluster, tanzuClusterBootstrap, log)
+	err = r.reconcileClusterProxySettings(cluster, clusterBootstrap, log)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -615,8 +615,8 @@ func (r *ClusterBootstrapReconciler) watchProvider(providerRef *corev1.TypedLoca
 	)
 }
 
-func (r *TanzuClusterBootstrapReconciler) reconcileClusterProxySettings(cluster *clusterapiv1beta1.Cluster,
-	tcb *runtanzuv1alpha3.TanzuClusterBootstrap,
+func (r *ClusterBootstrapReconciler) reconcileClusterProxySettings(cluster *clusterapiv1beta1.Cluster,
+	clusterBootstrap *runtanzuv1alpha3.ClusterBootstrap,
 	log logr.Logger) error {
 
 	// use patchHelper to auto detect if there is diff in Cluster CR when performing update
@@ -628,10 +628,10 @@ func (r *TanzuClusterBootstrapReconciler) reconcileClusterProxySettings(cluster 
 	HTTPProxy := ""
 	HTTPSProxy := ""
 	NoProxy := ""
-	if tcb.Spec.Proxy != nil {
-		HTTPProxy = tcb.Spec.Proxy.HTTPProxy
-		HTTPSProxy = tcb.Spec.Proxy.HTTPSProxy
-		NoProxy = tcb.Spec.Proxy.NoProxy
+	if clusterBootstrap.Spec.Proxy != nil {
+		HTTPProxy = clusterBootstrap.Spec.Proxy.HTTPProxy
+		HTTPSProxy = clusterBootstrap.Spec.Proxy.HTTPSProxy
+		NoProxy = clusterBootstrap.Spec.Proxy.NoProxy
 	}
 
 	if cluster.Annotations == nil {

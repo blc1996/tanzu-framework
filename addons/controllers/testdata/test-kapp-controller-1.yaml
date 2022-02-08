@@ -29,7 +29,7 @@ spec:
   bootstrapPackages: []
 ---
 apiVersion: run.tanzu.vmware.com/v1alpha3
-kind: TanzuClusterBootstrapTemplate
+kind: ClusterBootstrapTemplate
 metadata:
   name: v1.22.5
   namespace: tkg-system
