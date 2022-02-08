@@ -27,6 +27,10 @@ metadata:
   name: v1.22.3
   namespace: tkg-system
 spec:
+  proxy:
+    http_proxy: "foo.com"
+    https_proxy: "bar.com"
+    no_proxy: "foobar.com"
   additionalPackages:
     - refName: foobar.example.com.1.17.2
       valuesFrom:

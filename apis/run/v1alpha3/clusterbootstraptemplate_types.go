@@ -21,6 +21,8 @@ type ClusterBootstrapTemplateSpec struct {
 	Kapp *ClusterBootstrapPackage `json:"kapp,omitempty"`
 	// +optional
 	AdditionalPackages []*ClusterBootstrapPackage `json:"additionalPackages,omitempty"`
+	// +optional
+	Proxy *ProxyConfig `json:"proxy,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -52,6 +54,15 @@ type ValuesFrom struct {
 	SecretRef string `json:"secretRef,omitempty"`
 	// +optional
 	ProviderRef *corev1.TypedLocalObjectReference `json:"providerRef,omitempty"`
+}
+
+type ProxyConfig struct {
+	// +optional
+	HTTPProxy string `json:"http_proxy"`
+	// +optional
+	HTTPSProxy string `json:"https_proxy"`
+	// +optional
+	NoProxy string `json:"no_proxy"`
 }
 
 //+kubebuilder:object:root=true
