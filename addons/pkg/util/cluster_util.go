@@ -5,6 +5,8 @@ package util
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -148,6 +150,36 @@ func GetBOMForCluster(ctx context.Context, c client.Client, cluster *clusterv1be
 	}
 
 	return bom, nil
+}
+
+func GetClusterVariableStringByName(cluster *clusterv1beta1.Cluster, varName string) (string, error) {
+	var (
+		clusterVariableValue interface{}
+		selectedValue        string
+	)
+
+	if cluster == nil {
+		return "", errors.New("cluster resource is not found")
+	}
+	if cluster.Spec.Topology == nil {
+		return "", nil
+	}
+	clusterVariables := cluster.Spec.Topology.Variables
+	for _, clusterVariable := range clusterVariables {
+		if clusterVariable.Name == varName {
+			if err := json.Unmarshal(clusterVariable.Value.Raw, &clusterVariableValue); err != nil {
+				return "", errors.New(fmt.Sprintf("failed to unmarshal the selected cluster variable %s value from JSON", varName))
+			}
+			switch t := clusterVariableValue.(type) {
+			case string:
+				selectedValue = t
+			default:
+				return "", errors.New(fmt.Sprintf("invalid type for the selected cluster variable %s value", varName))
+			}
+			break
+		}
+	}
+	return selectedValue, nil
 }
 
 // ClusterKubeconfigSecretDetails contains the cluster kubeconfig secret details.

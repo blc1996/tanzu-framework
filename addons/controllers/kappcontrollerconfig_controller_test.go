@@ -9,15 +9,13 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
-	clusterapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	kappcontroller "github.com/vmware-tanzu/tanzu-framework/addons/controllers/kapp-controller"
 	"github.com/vmware-tanzu/tanzu-framework/addons/pkg/util"
 	"github.com/vmware-tanzu/tanzu-framework/addons/testutil"
 	runv1alpha3 "github.com/vmware-tanzu/tanzu-framework/apis/run/v1alpha3"
+	v1 "k8s.io/api/core/v1"
+	clusterapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("KappControllerConfig Reconciler", func() {
@@ -116,48 +114,7 @@ var _ = Describe("KappControllerConfig Reconciler", func() {
 				Expect(strings.Contains(secretData, "key: node.cloudprovider.kubernetes.io/uninitialized")).Should(BeTrue())
 				Expect(strings.Contains(secretData, "apiPort: 10100")).Should(BeTrue())
 				Expect(strings.Contains(secretData, "metricsBindAddress: \"0\"")).Should(BeTrue())
-				// Proxy setting should not be present at this time
-				Expect(strings.Contains(secretData, "Proxy")).Should(BeFalse())
 
-				return true
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-
-			// Update cluster Proxy settings
-			clusterBootstrap := &runv1alpha3.ClusterBootstrap{}
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(cluster), clusterBootstrap)
-				if err != nil {
-					return false
-				}
-				clusterBootstrap = clusterBootstrap.DeepCopy()
-
-				mutateFn := func() error {
-					clusterBootstrap.Spec.Proxy = &runv1alpha3.ProxyConfig{
-						HTTPProxy:  "foo.com",
-						HTTPSProxy: "bar.com",
-						NoProxy:    "foobar.com",
-					}
-					return nil
-				}
-
-				_, err = controllerutil.CreateOrPatch(ctx, k8sClient, clusterBootstrap, mutateFn)
-				return err == nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-
-			Eventually(func() bool {
-				secretKey := client.ObjectKey{
-					Namespace: "default",
-					Name:      util.GenerateDataValueSecretName(kappConfigCRName, kappcontroller.KappControllerAddonName),
-				}
-				secret := &v1.Secret{}
-				err := k8sClient.Get(ctx, secretKey, secret)
-				if err != nil {
-					return false
-				}
-				Expect(secret.Type).Should(Equal(v1.SecretTypeOpaque))
-
-				// Proxy setting may take some time to reconcile
-				secretData := string(secret.Data["values.yaml"])
 				if !strings.Contains(secretData, "httpProxy: foo.com") ||
 					!strings.Contains(secretData, "httpsProxy: bar.com") ||
 					!strings.Contains(secretData, "noProxy: foobar.com") {

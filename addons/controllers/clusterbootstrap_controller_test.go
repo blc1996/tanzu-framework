@@ -103,14 +103,13 @@ var _ = Describe("ClusterBootstrap Reconciler", func() {
 					return false
 				}
 
-				if clusterBootstrap.Spec.Proxy != nil &&
-					clusterBootstrap.Spec.Proxy.HTTPProxy == "foo.com" &&
-					clusterBootstrap.Spec.Proxy.HTTPSProxy == "bar.com" &&
-					clusterBootstrap.Spec.Proxy.NoProxy == "foobar.com" &&
-					cluster.Annotations != nil &&
-					cluster.Annotations[addontypes.TCBHTTPProxyConfigAnnotation] == clusterBootstrap.Spec.Proxy.HTTPProxy &&
-					cluster.Annotations[addontypes.TCBHTTPSProxyConfigAnnotation] == clusterBootstrap.Spec.Proxy.HTTPSProxy &&
-					cluster.Annotations[addontypes.TCBNoProxyConfigAnnotation] == clusterBootstrap.Spec.Proxy.NoProxy {
+				fmt.Printf("**** %v\n", cluster.Annotations)
+				if cluster.Annotations != nil &&
+					cluster.Annotations[addontypes.HTTPProxyConfigAnnotation] == "foo.com" &&
+					cluster.Annotations[addontypes.HTTPSProxyConfigAnnotation] == "bar.com" &&
+					cluster.Annotations[addontypes.NoProxyConfigAnnotation] == "foobar.com" &&
+					cluster.Annotations[addontypes.ProxyCACertConfigAnnotation] == "dummyCertificate" &&
+					cluster.Annotations[addontypes.IPFamilyConfigAnnotation] == "ipv4" {
 					return true
 				}
 

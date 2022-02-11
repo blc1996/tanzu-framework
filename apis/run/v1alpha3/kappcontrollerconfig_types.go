@@ -68,10 +68,6 @@ type KappDeployment struct {
 }
 
 type KappConfig struct {
-	// A cert chain of trusted CA certs. These will be added to the system-wide cert pool of trusted CA's
-	//+kubebuilder:validation:Optional
-	CaCerts string `json:"caCerts,omitempty"`
-
 	// A comma delimited list of hostnames for which kapp-controller should skip TLS verification
 	//+kubebuilder:validation:Optional
 	DangerousSkipTLSVerify string `json:"dangerousSkipTLSVerify,omitempty"`

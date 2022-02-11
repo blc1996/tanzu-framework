@@ -91,11 +91,11 @@ func mapKappControllerConfigSpec(cluster *clusterapiv1beta1.Cluster, config *run
 	configSpec.KappController.Deployment.MetricsBindAddress = config.Spec.KappController.Deployment.MetricsBindAddress
 
 	// Config
-	configSpec.KappController.Config.CaCerts = config.Spec.KappController.Config.CaCerts
 	if cluster.Annotations != nil {
-		configSpec.KappController.Config.HTTPProxy = cluster.Annotations[types.TCBHTTPProxyConfigAnnotation]
-		configSpec.KappController.Config.HTTPSProxy = cluster.Annotations[types.TCBHTTPSProxyConfigAnnotation]
-		configSpec.KappController.Config.NoProxy = cluster.Annotations[types.TCBNoProxyConfigAnnotation]
+		configSpec.KappController.Config.CaCerts = cluster.Annotations[types.ProxyCACertConfigAnnotation]
+		configSpec.KappController.Config.HTTPProxy = cluster.Annotations[types.HTTPProxyConfigAnnotation]
+		configSpec.KappController.Config.HTTPSProxy = cluster.Annotations[types.HTTPSProxyConfigAnnotation]
+		configSpec.KappController.Config.NoProxy = cluster.Annotations[types.NoProxyConfigAnnotation]
 	}
 	configSpec.KappController.Config.DangerousSkipTLSVerify = config.Spec.KappController.Config.DangerousSkipTLSVerify
 

@@ -15,6 +15,20 @@ spec:
     services:
       cidrBlocks:
         - 100.64.0.0/13
+  topology:
+    class: test-clusterclass-tcbt
+    version: v1.22.5
+    variables:
+      - name: TKG_HTTP_PROXY
+        value: "foo.com"
+      - name: TKG_HTTPS_PROXY
+        value: "bar.com"
+      - name: TKG_NO_PROXY
+        value: "foobar.com"
+      - name: TKG_PROXY_CA_CERT
+        value: "dummyCertificate"
+      - name: TKG_IP_FAMILY
+        value: "ipv4"
 ---
 apiVersion: run.tanzu.vmware.com/v1alpha3
 kind: TanzuKubernetesRelease

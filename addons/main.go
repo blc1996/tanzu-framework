@@ -131,7 +131,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Addon"),
 		Scheme: mgr.GetScheme(),
-		Config: addonconfig.Config{
+		Config: addonconfig.AddonsConfig{
 			AppSyncPeriod:           appSyncPeriod,
 			AppWaitTimeout:          appWaitTimeout,
 			AddonNamespace:          addonNamespace,

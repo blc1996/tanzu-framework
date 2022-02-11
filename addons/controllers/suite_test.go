@@ -48,16 +48,21 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 const (
-	waitTimeout             = time.Second * 90
-	pollingInterval         = time.Second * 2
-	appSyncPeriod           = 5 * time.Minute
-	appWaitTimeout          = 30 * time.Second
-	addonNamespace          = "tkg-system"
-	addonServiceAccount     = "tkg-addons-app-sa"
-	addonClusterRole        = "tkg-addons-app-cluster-role"
-	addonClusterRoleBinding = "tkg-addons-app-cluster-role-binding"
-	addonImagePullPolicy    = "IfNotPresent"
-	corePackageRepoName     = "core"
+	waitTimeout                    = time.Second * 90
+	pollingInterval                = time.Second * 2
+	appSyncPeriod                  = 5 * time.Minute
+	appWaitTimeout                 = 30 * time.Second
+	addonNamespace                 = "tkg-system"
+	addonServiceAccount            = "tkg-addons-app-sa"
+	addonClusterRole               = "tkg-addons-app-cluster-role"
+	addonClusterRoleBinding        = "tkg-addons-app-cluster-role-binding"
+	addonImagePullPolicy           = "IfNotPresent"
+	corePackageRepoName            = "core"
+	httpProxyClusterClassVarName   = "TKG_HTTP_PROXY"
+	httpsProxyClusterClassVarName  = "TKG_HTTPS_PROXY"
+	noProxyClusterClassVarName     = "TKG_NO_PROXY"
+	proxyCaCertClusterClassVarName = "TKG_PROXY_CA_CERT"
+	ipFamilyClusterClassVarName    = "TKG_IP_FAMILY"
 )
 
 var (
@@ -175,7 +180,7 @@ var _ = BeforeSuite(func(done Done) {
 		Client: mgr.GetClient(),
 		Log:    setupLog,
 		Scheme: mgr.GetScheme(),
-		Config: addonconfig.Config{
+		Config: addonconfig.AddonControllerConfig{
 			AppSyncPeriod:           appSyncPeriod,
 			AppWaitTimeout:          appWaitTimeout,
 			AddonNamespace:          addonNamespace,
@@ -208,6 +213,13 @@ var _ = BeforeSuite(func(done Done) {
 	bootstrapReconciler := NewClusterBootstrapReconciler(mgr.GetClient(),
 		ctrl.Log.WithName("controllers").WithName("ClusterBootstrap"),
 		mgr.GetScheme(),
+		addonconfig.ClusterBootstrapControllerConfig{
+			HTTPProxyClusterClassVarName:   httpProxyClusterClassVarName,
+			HTTPSProxyClusterClassVarName:  httpsProxyClusterClassVarName,
+			NoProxyClusterClassVarName:     noProxyClusterClassVarName,
+			ProxyCACertClusterClassVarName: proxyCaCertClusterClassVarName,
+			IPFamilyClusterClassVarName:    ipFamilyClusterClassVarName,
+		},
 	)
 	Expect(bootstrapReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1})).To(Succeed())
 

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	addonconfig "github.com/vmware-tanzu/tanzu-framework/addons/pkg/config"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,6 +51,7 @@ type ClusterBootstrapReconciler struct {
 	Log     logr.Logger
 	Scheme  *runtime.Scheme
 	context context.Context
+	Config  addonconfig.ClusterBootstrapControllerConfig
 
 	// internal properties
 	controller    controller.Controller
@@ -62,11 +65,12 @@ type ClusterBootstrapReconciler struct {
 }
 
 // NewClusterBootstrapReconciler returns a reconciler for ClusterBootstrap
-func NewClusterBootstrapReconciler(c client.Client, log logr.Logger, scheme *runtime.Scheme) *ClusterBootstrapReconciler {
+func NewClusterBootstrapReconciler(c client.Client, log logr.Logger, scheme *runtime.Scheme, config addonconfig.ClusterBootstrapControllerConfig) *ClusterBootstrapReconciler {
 	return &ClusterBootstrapReconciler{
 		Client: c,
 		Log:    log,
 		Scheme: scheme,
+		Config: config,
 	}
 }
 
@@ -161,7 +165,7 @@ func (r *ClusterBootstrapReconciler) reconcileNormal(cluster *clusterapiv1beta1.
 	}
 
 	// reconcile the proxy settings of the cluster
-	err = r.reconcileClusterProxySettings(cluster, clusterBootstrap, log)
+	err = r.reconcileClusterProxyAndNetworkSettings(cluster, clusterBootstrap, log)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -615,7 +619,7 @@ func (r *ClusterBootstrapReconciler) watchProvider(providerRef *corev1.TypedLoca
 	)
 }
 
-func (r *ClusterBootstrapReconciler) reconcileClusterProxySettings(cluster *clusterapiv1beta1.Cluster,
+func (r *ClusterBootstrapReconciler) reconcileClusterProxyAndNetworkSettings(cluster *clusterapiv1beta1.Cluster,
 	clusterBootstrap *runtanzuv1alpha3.ClusterBootstrap,
 	log logr.Logger) error {
 
@@ -625,23 +629,40 @@ func (r *ClusterBootstrapReconciler) reconcileClusterProxySettings(cluster *clus
 		return err
 	}
 
-	HTTPProxy := ""
-	HTTPSProxy := ""
-	NoProxy := ""
-	if clusterBootstrap.Spec.Proxy != nil {
-		HTTPProxy = clusterBootstrap.Spec.Proxy.HTTPProxy
-		HTTPSProxy = clusterBootstrap.Spec.Proxy.HTTPSProxy
-		NoProxy = clusterBootstrap.Spec.Proxy.NoProxy
+	// We want the reconciliation to continue even if there are errors in getting proxy settings
+	// Log an error and proceed with defaulting to empty string
+	// Individual config controllers are responsible for validating the info provided
+	HTTPProxy, err := util.GetClusterVariableStringByName(cluster, r.Config.HTTPProxyClusterClassVarName)
+	if err != nil {
+		log.Error(err, "Failed to fetch cluster HTTP proxy setting, defaulting to empty")
+	}
+	HTTPSProxy, err := util.GetClusterVariableStringByName(cluster, r.Config.HTTPSProxyClusterClassVarName)
+	if err != nil {
+		log.Error(err, "Failed to fetch cluster HTTPS proxy setting, defaulting to empty")
+	}
+	NoProxy, err := util.GetClusterVariableStringByName(cluster, r.Config.NoProxyClusterClassVarName)
+	if err != nil {
+		log.Error(err, "Failed to fetch cluster no-proxy setting, defaulting to empty")
+	}
+	ProxyCACert, err := util.GetClusterVariableStringByName(cluster, r.Config.ProxyCACertClusterClassVarName)
+	if err != nil {
+		log.Error(err, "Failed to fetch cluster proxy CA certificate, defaulting to empty")
+	}
+	IPFamily, err := util.GetClusterVariableStringByName(cluster, r.Config.IPFamilyClusterClassVarName)
+	if err != nil {
+		log.Error(err, "Failed to fetch cluster IP family, defaulting to empty")
 	}
 
 	if cluster.Annotations == nil {
 		cluster.Annotations = map[string]string{}
 	}
-	cluster.Annotations[addontypes.TCBHTTPProxyConfigAnnotation] = HTTPProxy
-	cluster.Annotations[addontypes.TCBHTTPSProxyConfigAnnotation] = HTTPSProxy
-	cluster.Annotations[addontypes.TCBNoProxyConfigAnnotation] = NoProxy
+	cluster.Annotations[addontypes.HTTPProxyConfigAnnotation] = HTTPProxy
+	cluster.Annotations[addontypes.HTTPSProxyConfigAnnotation] = HTTPSProxy
+	cluster.Annotations[addontypes.NoProxyConfigAnnotation] = NoProxy
+	cluster.Annotations[addontypes.ProxyCACertConfigAnnotation] = ProxyCACert
+	cluster.Annotations[addontypes.IPFamilyConfigAnnotation] = IPFamily
 
-	log.Info("setting proxy configuration in Cluster annotation", addontypes.TCBHTTPProxyConfigAnnotation, HTTPProxy, addontypes.TCBHTTPSProxyConfigAnnotation, HTTPSProxy, addontypes.TCBNoProxyConfigAnnotation, NoProxy)
+	log.Info("setting proxy and network configurations in Cluster annotation", addontypes.HTTPProxyConfigAnnotation, HTTPProxy, addontypes.HTTPSProxyConfigAnnotation, HTTPSProxy, addontypes.NoProxyConfigAnnotation, NoProxy, addontypes.ProxyCACertConfigAnnotation, ProxyCACert, addontypes.IPFamilyConfigAnnotation, IPFamily)
 
 	if err := patchHelper.Patch(r.context, cluster); err != nil {
 		log.Error(err, "Error patching Cluster Annotation")
