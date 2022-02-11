@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	addonconfig "github.com/vmware-tanzu/tanzu-framework/addons/pkg/config"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,6 +51,7 @@ type ClusterBootstrapReconciler struct {
 	Log     logr.Logger
 	Scheme  *runtime.Scheme
 	context context.Context
+	Config  addonconfig.ClusterBootstrapControllerConfig
 
 	// internal properties
 	controller    controller.Controller
@@ -62,11 +65,12 @@ type ClusterBootstrapReconciler struct {
 }
 
 // NewClusterBootstrapReconciler returns a reconciler for ClusterBootstrap
-func NewClusterBootstrapReconciler(c client.Client, log logr.Logger, scheme *runtime.Scheme) *ClusterBootstrapReconciler {
+func NewClusterBootstrapReconciler(c client.Client, log logr.Logger, scheme *runtime.Scheme, config addonconfig.ClusterBootstrapControllerConfig) *ClusterBootstrapReconciler {
 	return &ClusterBootstrapReconciler{
 		Client: c,
 		Log:    log,
 		Scheme: scheme,
+		Config: config,
 	}
 }
 
