@@ -7,12 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
-	"github.com/vmware-tanzu/carvel-vendir/pkg/vendir/versions"
-
-	"github.com/vmware-tanzu/tanzu-framework/addons/pkg/constants"
-
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	kapppkgv1alpha1 "github.com/vmware-tanzu/carvel-kapp-controller/pkg/apiserver/apis/datapackaging/v1alpha1"
+	"github.com/vmware-tanzu/carvel-vendir/pkg/vendir/versions"
+	"github.com/vmware-tanzu/tanzu-framework/addons/pkg/constants"
 	runv1alpha3 "github.com/vmware-tanzu/tanzu-framework/apis/run/v1alpha3"
 )
 
@@ -41,8 +39,8 @@ func (webhook *ClusterBootstrap) SetupWebhookWithManager(mgr ctrl.Manager) error
 		clusterbootstraplog.Error(err, "Error creating dynamic client")
 		return err
 	}
-	webhook.dynamicClient = dynClient
-	webhook.cachedDiscoveryClient = cacheddiscovery.NewMemCacheClient(kubernetes.NewForConfigOrDie(mgr.GetConfig()).Discovery())
+	webhook.DynamicClient = dynClient
+	webhook.CachedDiscoveryClient = cacheddiscovery.NewMemCacheClient(kubernetes.NewForConfigOrDie(mgr.GetConfig()).Discovery())
 
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&runv1alpha3.ClusterBootstrap{}).
@@ -55,9 +53,9 @@ func (webhook *ClusterBootstrap) SetupWebhookWithManager(mgr ctrl.Manager) error
 // ClusterBootstrap implements a validating and defaulting webhook for ClusterBootstrap.
 type ClusterBootstrap struct {
 	Client        client.Reader
-	dynamicClient dynamic.Interface
+	DynamicClient dynamic.Interface
 	// discovery client for looking up api-resources and preferred versions
-	cachedDiscoveryClient discovery.CachedDiscoveryInterface
+	CachedDiscoveryClient discovery.CachedDiscoveryInterface
 }
 
 var _ webhook.CustomDefaulter = &ClusterBootstrap{}
@@ -75,8 +73,6 @@ func getFieldPath(fieldName string) *field.Path {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (webhook *ClusterBootstrap) ValidateCreate(ctx context.Context, obj runtime.Object) error {
-	fmt.Println("************ ValidateCreate *************")
-
 	clusterBootstrap, ok := obj.(*runv1alpha3.ClusterBootstrap)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
@@ -133,6 +129,7 @@ func (webhook *ClusterBootstrap) ValidateClusterBootstrapPackage(ctx context.Con
 	if _, err := name.ParseReference(pkg.RefName); err != nil {
 		return field.Invalid(fldPath.Child("refName"), pkg.RefName, err.Error())
 	}
+
 	// valuesFrom can't be nil
 	if pkg.ValuesFrom == nil {
 		return field.Invalid(fldPath.Child("valuesFrom"), pkg.ValuesFrom, "valuesFrom can't be nil")
@@ -144,13 +141,17 @@ func (webhook *ClusterBootstrap) ValidateClusterBootstrapPackage(ctx context.Con
 			(pkg.ValuesFrom.SecretRef != "" && pkg.ValuesFrom.Inline != "") {
 			return field.Invalid(fldPath.Child("valuesFrom"), pkg.ValuesFrom, "valuesFrom can't have more than one non-null subfield")
 		}
+
 		if pkg.ValuesFrom.ProviderRef != nil {
+			if pkg.ValuesFrom.ProviderRef.APIGroup == nil {
+				return field.Invalid(fldPath.Child("valuesFrom").Child("ProviderRef"), pkg.ValuesFrom.ProviderRef, "APIGroup can't be nil")
+			}
 			//	validation for providerRef, i.e. check if GVR and CRD resource exist in cluster
 			gvr, err := webhook.getGVR(schema.GroupKind{Group: *pkg.ValuesFrom.ProviderRef.APIGroup, Kind: pkg.ValuesFrom.ProviderRef.Kind})
 			if err != nil {
 				return field.Invalid(fldPath.Child("valuesFrom").Child("ProviderRef"), pkg.ValuesFrom.ProviderRef, err.Error())
 			}
-			_, err = webhook.dynamicClient.Resource(*gvr).Namespace(namespace).Get(ctx, pkg.ValuesFrom.ProviderRef.Name, metav1.GetOptions{})
+			_, err = webhook.DynamicClient.Resource(*gvr).Namespace(namespace).Get(ctx, pkg.ValuesFrom.ProviderRef.Name, metav1.GetOptions{})
 			if err != nil {
 				return field.Invalid(fldPath.Child("valuesFrom").Child("ProviderRef"), pkg.ValuesFrom.ProviderRef, err.Error())
 			}
@@ -176,7 +177,7 @@ func (webhook *ClusterBootstrap) ValidateClusterBootstrapPackage(ctx context.Con
 
 // getGVR returns a GroupVersionResource for a GroupKind
 func (webhook *ClusterBootstrap) getGVR(gk schema.GroupKind) (*schema.GroupVersionResource, error) {
-	apiResourceList, err := webhook.cachedDiscoveryClient.ServerPreferredResources()
+	apiResourceList, err := webhook.CachedDiscoveryClient.ServerPreferredResources()
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +199,7 @@ func (webhook *ClusterBootstrap) getGVR(gk schema.GroupKind) (*schema.GroupVersi
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (webhook *ClusterBootstrap) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
-	fmt.Println("************ ValidateUpdate *************")
-
+	// Covert objs to ClusterBootstrap
 	newClusterBootstrap, ok := newObj.(*runv1alpha3.ClusterBootstrap)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterBootstrap but got a %T", newObj))
