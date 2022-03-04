@@ -57,6 +57,11 @@ func (r *CalicoConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	if util.IsAddonResourcePaused(calicoConfig) {
+		r.Log.Info("calicoConfig paused")
+		return ctrl.Result{}, nil
+	}
+
 	// deep copy CalicoConfig to avoid issues if in the future other controllers where interacting with the same copy
 	calicoConfig = calicoConfig.DeepCopy()
 

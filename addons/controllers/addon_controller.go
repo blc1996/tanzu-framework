@@ -373,7 +373,8 @@ func (r *AddonReconciler) reconcileAddonSecretDelete(
 	addonSecret *corev1.Secret,
 	patchAddonSecret *bool) (ctrl.Result, error) {
 
-	if r.shouldNotReconcile(log, addonSecret) {
+	if util.IsAddonResourcePaused(addonSecret) {
+		log.Info("Addon secret paused")
 		return ctrl.Result{}, nil
 	}
 
@@ -411,6 +412,11 @@ func (r *AddonReconciler) reconcileAddonSecretNormal(
 	imageRepository string,
 	bom *bomtypes.Bom) (ctrl.Result, error) {
 
+	if util.IsAddonResourcePaused(addonSecret) {
+		log.Info("Addon secret paused")
+		return ctrl.Result{}, nil
+	}
+
 	// get addon config from BOM
 	addonConfig, err := bom.GetAddon(addonName)
 	if err != nil {
@@ -422,10 +428,6 @@ func (r *AddonReconciler) reconcileAddonSecretNormal(
 	metadataAdded := r.addMetadataToAddonSecret(log, cluster, addonSecret)
 
 	*patchAddonSecret = metadataAdded
-
-	if r.shouldNotReconcile(log, addonSecret) {
-		return ctrl.Result{}, nil
-	}
 
 	// create/patch remote app and data values secret
 	if err := r.reconcileAddonNormal(ctx, log, cluster, clusterClient, addonSecret, &addonConfig, imageRepository, bom); err != nil {
@@ -504,18 +506,6 @@ func (r *AddonReconciler) addMetadataToAddonSecret(
 	}
 
 	return patchAddonSecret
-}
-
-func (r *AddonReconciler) shouldNotReconcile(
-	log logr.Logger,
-	addonSecret *corev1.Secret) bool {
-
-	if util.IsAddonPaused(addonSecret) {
-		log.Info("Addon paused")
-		return true
-	}
-
-	return false
 }
 
 // logOperationResult logs the reconcile operation results

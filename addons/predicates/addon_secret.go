@@ -31,7 +31,7 @@ func processAddonSecret(o client.Object, log logr.Logger) bool {
 		return true
 	}
 
-	if isAddonType(secret) && hasAddonLabels(secret) && !util.IsAddonPaused(secret) {
+	if isAddonType(secret) && hasAddonLabels(secret) && !util.IsAddonResourcePaused(secret) {
 		return true
 	}
 

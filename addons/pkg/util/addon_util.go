@@ -232,9 +232,9 @@ func IsRemoteApp(addonSecret *corev1.Secret) bool {
 	return isRemoteApp
 }
 
-// IsAddonPaused returns true if Addon is paused
-func IsAddonPaused(addonSecret *corev1.Secret) bool {
-	annotations := addonSecret.GetAnnotations()
+// IsAddonResourcePaused returns true if Addon resource is paused
+func IsAddonResourcePaused(obj client.Object) bool {
+	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		return false
 	}

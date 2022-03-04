@@ -59,6 +59,11 @@ func (r *AntreaConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	if util.IsAddonResourcePaused(antreaConfig) {
+		r.Log.Info("antreaConfig paused")
+		return ctrl.Result{}, nil
+	}
+
 	// deep copy AntreaConfig to avoid issues if in the future other controllers where interacting with the same copy
 	antreaConfig = antreaConfig.DeepCopy()
 

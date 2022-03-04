@@ -54,6 +54,11 @@ func (r *CPIConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	if util.IsAddonResourcePaused(cpiConfig) {
+		r.Log.Info("cpiConfig paused")
+		return ctrl.Result{}, nil
+	}
+
 	cpiConfig = cpiConfig.DeepCopy()
 	cluster, err := r.getOwnerCluster(ctx, cpiConfig)
 	if cluster == nil {

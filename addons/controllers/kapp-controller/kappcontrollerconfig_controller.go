@@ -17,6 +17,7 @@ import (
 	clusterapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterapiutil "sigs.k8s.io/cluster-api/util"
 	clusterapipatchutil "sigs.k8s.io/cluster-api/util/patch"
+	clusterApiPredicates "sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -54,6 +55,12 @@ func (r *KappControllerConfigReconciler) Reconcile(ctx context.Context, req ctrl
 		r.Log.Error(err, "Unable to fetch kappControllerConfig resource")
 		return ctrl.Result{}, err
 	}
+
+	if util.IsAddonResourcePaused(kappControllerConfig) {
+		log.Info("KappControllerConfig paused")
+		return ctrl.Result{}, nil
+	}
+
 	// Deepcopy to prevent client-go cache conflict
 	kappControllerConfig = kappControllerConfig.DeepCopy()
 
@@ -95,6 +102,7 @@ func (r *KappControllerConfigReconciler) SetupWithManager(ctx context.Context, m
 			&source.Kind{Type: &clusterapiv1beta1.Cluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.ClusterToKappControllerConfig),
 		).
+		WithEventFilter(clusterApiPredicates.ResourceNotPaused(r.Log)).
 		WithOptions(options).
 		Complete(r)
 }
