@@ -10,11 +10,10 @@ import (
 	"k8s.io/client-go/util/keyutil"
 	"knative.dev/pkg/webhook/certificates/resources"
 
-	"github.com/vmware-tanzu/tanzu-framework/addons/testutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/vmware-tanzu/tanzu-framework/addons/test/testutil"
 	"github.com/vmware-tanzu/tanzu-framework/pkg/v1/webhooks"
 )
 

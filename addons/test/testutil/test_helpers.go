@@ -42,6 +42,63 @@ import (
 	"github.com/vmware-tanzu/tanzu-framework/pkg/v1/webhooks"
 )
 
+type WebhookCertificatesDetails struct {
+	CertPath           string
+	KeyPath            string
+	WebhookScrtName    string
+	AddonNamespace     string
+	WebhookServiceName string
+	LabelSelector      string
+}
+
+func SetupWebhookCertificates(ctx context.Context, k8sClient client.Client, k8sConfig *rest.Config, certDetails *WebhookCertificatesDetails) error {
+	labelMatch, _ := labels.NewRequirement("webhook-cert", selection.Equals, []string{certDetails.LabelSelector})
+	labelSelector := labels.NewSelector()
+	labelSelector = labelSelector.Add(*labelMatch)
+
+	scrt, err := webhooks.InstallNewCertificates(ctx, k8sConfig, certDetails.CertPath, certDetails.KeyPath,
+		certDetails.WebhookScrtName, certDetails.AddonNamespace, certDetails.WebhookServiceName, "webhook-cert="+certDetails.LabelSelector)
+	if err != nil {
+		return err
+	}
+	vwcfgs := &adminregv1.ValidatingWebhookConfigurationList{}
+	err = k8sClient.List(ctx, vwcfgs, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return err
+	}
+	if len(vwcfgs.Items) == 0 {
+		return fmt.Errorf("validating Webhook Configuration List is empty")
+	}
+	for i := range vwcfgs.Items {
+		wcfg := vwcfgs.Items[i]
+		for j := range wcfg.Webhooks {
+			whook := wcfg.Webhooks[j]
+			if !bytes.Equal(whook.ClientConfig.CABundle, scrt.Data[resources.CACert]) {
+				return fmt.Errorf("validating Webhook CA Bundlle is not updated correctly")
+			}
+		}
+	}
+
+	mwcfgs := &adminregv1.MutatingWebhookConfigurationList{}
+	err = k8sClient.List(ctx, mwcfgs, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		return err
+	}
+	if len(vwcfgs.Items) == 0 {
+		return fmt.Errorf("mutating Webhook Configuration List is empty")
+	}
+	for i := range mwcfgs.Items {
+		wcfg := mwcfgs.Items[i]
+		for j := range wcfg.Webhooks {
+			whook := wcfg.Webhooks[j]
+			if !bytes.Equal(whook.ClientConfig.CABundle, scrt.Data[resources.CACert]) {
+				return fmt.Errorf("malidating Webhook CA Bundlle is not updated correctly")
+			}
+		}
+	}
+	return nil
+}
+
 // CreateResources using unstructured objects from a yaml/json file provided by decoder
 func CreateResources(f *os.File, cfg *rest.Config, dynamicClient dynamic.Interface) error {
 	var err error
@@ -257,61 +314,4 @@ func GetExternalCRDPaths(externalDeps map[string][]string) ([]string, error) {
 
 	logf.Log.Info("external CRD paths", "crdPaths", crdPaths)
 	return crdPaths, nil
-}
-
-type WebhookCertificatesDetails struct {
-	CertPath           string
-	KeyPath            string
-	WebhookScrtName    string
-	AddonNamespace     string
-	WebhookServiceName string
-	LabelSelector      string
-}
-
-func SetupWebhookCertificates(ctx context.Context, k8sClient client.Client, k8sConfig *rest.Config, certDetails *WebhookCertificatesDetails) error {
-	labelMatch, _ := labels.NewRequirement("webhook-cert", selection.Equals, []string{certDetails.LabelSelector})
-	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*labelMatch)
-
-	scrt, err := webhooks.InstallNewCertificates(ctx, k8sConfig, certDetails.CertPath, certDetails.KeyPath,
-		certDetails.WebhookScrtName, certDetails.AddonNamespace, certDetails.WebhookServiceName, "webhook-cert="+certDetails.LabelSelector)
-	if err != nil {
-		return err
-	}
-	vwcfgs := &adminregv1.ValidatingWebhookConfigurationList{}
-	err = k8sClient.List(ctx, vwcfgs, &client.ListOptions{LabelSelector: labelSelector})
-	if err != nil {
-		return err
-	}
-	if len(vwcfgs.Items) == 0 {
-		return fmt.Errorf("validating Webhook Configuration List is empty")
-	}
-	for i := range vwcfgs.Items {
-		wcfg := vwcfgs.Items[i]
-		for j := range wcfg.Webhooks {
-			whook := wcfg.Webhooks[j]
-			if !bytes.Equal(whook.ClientConfig.CABundle, scrt.Data[resources.CACert]) {
-				return fmt.Errorf("validating Webhook CA Bundlle is not updated correctly")
-			}
-		}
-	}
-
-	mwcfgs := &adminregv1.MutatingWebhookConfigurationList{}
-	err = k8sClient.List(ctx, mwcfgs, &client.ListOptions{LabelSelector: labelSelector})
-	if err != nil {
-		return err
-	}
-	if len(vwcfgs.Items) == 0 {
-		return fmt.Errorf("mutating Webhook Configuration List is empty")
-	}
-	for i := range mwcfgs.Items {
-		wcfg := mwcfgs.Items[i]
-		for j := range wcfg.Webhooks {
-			whook := wcfg.Webhooks[j]
-			if !bytes.Equal(whook.ClientConfig.CABundle, scrt.Data[resources.CACert]) {
-				return fmt.Errorf("malidating Webhook CA Bundlle is not updated correctly")
-			}
-		}
-	}
-	return nil
 }

@@ -43,6 +43,7 @@ import (
 	"github.com/vmware-tanzu/tanzu-framework/addons/pkg/constants"
 	"github.com/vmware-tanzu/tanzu-framework/addons/pkg/crdwait"
 	"github.com/vmware-tanzu/tanzu-framework/addons/test/testutil"
+	addonwebhooks "github.com/vmware-tanzu/tanzu-framework/addons/webhooks"
 	cniv1alpha1 "github.com/vmware-tanzu/tanzu-framework/apis/cni/v1alpha1"
 	cpiv1alpha1 "github.com/vmware-tanzu/tanzu-framework/apis/cpi/v1alpha1"
 	runtanzuv1alpha1 "github.com/vmware-tanzu/tanzu-framework/apis/run/v1alpha1"
@@ -278,6 +279,12 @@ var _ = BeforeSuite(func(done Done) {
 	err = (&cniv1alpha1.AntreaConfig{}).SetupWebhookWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 	err = (&cniv1alpha1.CalicoConfig{}).SetupWebhookWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
+	clusterbootstrapWebhook := addonwebhooks.ClusterBootstrap{
+		Client:          k8sClient,
+		SystemNamespace: addonNamespace,
+	}
+	err = clusterbootstrapWebhook.SetupWebhookWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
