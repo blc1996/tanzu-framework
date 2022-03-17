@@ -34,6 +34,7 @@ import (
 	addonconfig "github.com/vmware-tanzu/tanzu-framework/addons/pkg/config"
 	"github.com/vmware-tanzu/tanzu-framework/addons/pkg/constants"
 	"github.com/vmware-tanzu/tanzu-framework/addons/pkg/crdwait"
+	addonwebhooks "github.com/vmware-tanzu/tanzu-framework/addons/webhooks"
 	cniv1alpha1 "github.com/vmware-tanzu/tanzu-framework/apis/cni/v1alpha1"
 	cpiv1alpha1 "github.com/vmware-tanzu/tanzu-framework/apis/cpi/v1alpha1"
 	runtanzuv1alpha1 "github.com/vmware-tanzu/tanzu-framework/apis/run/v1alpha1"
@@ -177,6 +178,7 @@ func main() {
 	}
 	if flags.featureGateClusterBootstrap {
 		enableClusterBootstrapAndConfigControllers(ctx, mgr, flags)
+		enableClusterBootstrapAndConfigWebhooks(ctx, mgr, flags)
 	}
 
 	setupChecks(mgr)
@@ -253,6 +255,27 @@ func enableClusterBootstrapAndConfigControllers(ctx context.Context, mgr ctrl.Ma
 	)
 	if err := bootstrapReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "clusterbootstrap")
+		os.Exit(1)
+	}
+}
+
+func enableClusterBootstrapAndConfigWebhooks(ctx context.Context, mgr ctrl.Manager, flags *addonFlags) {
+	if err := (&cniv1alpha1.AntreaConfig{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create Antrea webhook", "webhook", "antrea")
+		os.Exit(1)
+	}
+
+	if err := (&cniv1alpha1.CalicoConfig{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create Calico webhook", "webhook", "calico")
+		os.Exit(1)
+	}
+
+	clusterbootstrapWebhook := addonwebhooks.ClusterBootstrap{
+		Client:          mgr.GetClient(),
+		SystemNamespace: flags.addonNamespace,
+	}
+	if err := clusterbootstrapWebhook.SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create ClusterBootstrap webhook", "webhook", "clusterbootstrap")
 		os.Exit(1)
 	}
 }
