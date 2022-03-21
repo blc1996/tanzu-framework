@@ -178,7 +178,7 @@ func main() {
 	}
 	if flags.featureGateClusterBootstrap {
 		enableClusterBootstrapAndConfigControllers(ctx, mgr, flags)
-		enableClusterBootstrapAndConfigWebhooks(ctx, mgr, flags)
+		enableClusterBootstrapAndConfigWebhooks(mgr, flags)
 	}
 
 	setupChecks(mgr)
@@ -259,7 +259,7 @@ func enableClusterBootstrapAndConfigControllers(ctx context.Context, mgr ctrl.Ma
 	}
 }
 
-func enableClusterBootstrapAndConfigWebhooks(ctx context.Context, mgr ctrl.Manager, flags *addonFlags) {
+func enableClusterBootstrapAndConfigWebhooks(mgr ctrl.Manager, flags *addonFlags) {
 	if err := (&cniv1alpha1.AntreaConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create Antrea webhook", "webhook", "antrea")
 		os.Exit(1)
