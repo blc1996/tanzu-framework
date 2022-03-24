@@ -286,6 +286,11 @@ var _ = BeforeSuite(func(done Done) {
 	}
 	err = clusterbootstrapWebhook.SetupWebhookWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
+	clusterbootstrapTemplateWebhook := addonwebhooks.ClusterBootstrapTemplate{
+		SystemNamespace: addonNamespace,
+	}
+	err = clusterbootstrapTemplateWebhook.SetupWebhookWithManager(mgr)
+	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
 		defer GinkgoRecover()
